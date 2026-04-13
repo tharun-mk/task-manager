@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Task Manager</title>
+    <style>
+        /* Bare minimum CSS */
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+        }
+        .completed { 
+            text-decoration: line-through; 
+            color: gray; 
+        }
+        li { 
+            margin-bottom: 10px; 
+        }
+    </style>
+</head>
+<body>
+
+    <h1>My Tasks</h1>
+    
+    <input type="text" id="taskInput" placeholder="New task...">
+    <button onclick="addTask()">Add Task</button>
+    
+    <ul id="taskList"></ul>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/Tasks/';
+
+        // 1. READ: Get tasks from FastAPI and show them
+        async function fetchTasks() {
+            let response = await fetch(API_URL);
+            let tasks = await response.json();
+            
+            let listHtml = ""; // Start with an empty string
+            
+            // Loop through each task from the database
+            for (let task of tasks) {
+                // Check if it's done so we can strike-through the text and check the box
+                let isDone = task.status === 'completed' ? 'checked' : '';
+                let cssClass = task.status === 'completed' ? 'completed' : '';
+
+                // Build a simple list item string for each task
+                listHtml += `
+                    <li class="${cssClass}">
+                        <input type="checkbox" ${isDone} onchange="updateTask(${task.id}, '${task.status}', '${task.task_to_do}')">
+                        ${task.task_to_do}
+                        <button onclick="deleteTask(${task.id})">Delete</button>
+                    </li>
+                `;
+            }
+            
+            // Put the newly built HTML into the <ul> on the page
+            document.getElementById('taskList').innerHTML = listHtml;
+        }
+
+        // 2. CREATE: Add a new task
+        async function addTask() {
+            let text = document.getElementById('taskInput').value;
+            
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ task_to_do: text, status: 'pending', due_date: null })
+            });
+
+            document.getElementById('taskInput').value = ''; // clear the input box
+            fetchTasks(); // Refresh the list on the screen
+        }
+
+        // 3. UPDATE: Change between pending/completed
+        async function updateTask(id, currentStatus, text) {
+            let newStatus = currentStatus === 'pending' ? 'completed' : 'pending';
+            
+            await fetch(API_URL + id, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ task_to_do: text, status: newStatus, due_date: null })
+            });
+
+            fetchTasks(); // Refresh the list on the screen
+        }
+
+        // 4. DELETE: Remove a task
+        async function deleteTask(id) {
+            await fetch(API_URL + id, { method: 'DELETE' });
+            
+            fetchTasks(); // Refresh the list on the screen
+        }
+
+        // Run this once when the page first opens to load existing tasks
+        fetchTasks();
+    </script>
+</body>
+</html>
