@@ -30,7 +30,13 @@
 </head>
 <body>
     <div class="container">
-        <h1>Task Manager</h1>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:16px;">
+            <div>
+                <h1>Task Manager</h1>
+                <div id="welcomeText" style="color:#4b5563; font-size:14px; margin-top:-8px;"></div>
+            </div>
+            <button id="logoutButton" class="secondary" style="height:42px;">Logout</button>
+        </div>
         <div id="message" class="message"></div>
         <div class="grid">
             <section>
@@ -60,9 +66,13 @@
          * PRODUCTION CONFIGURATION
          * Configured to strictly use the live Render backend URL.
          */
-        const API_BASE_URL = 'https://task-manager-ur9j.onrender.com'; 
-
+        const API_BASE_URL = 'https://task-manager-ur9j.onrender.com';
+        const ACCESS_TOKEN_KEY = 'access_token';
         const API_PATH = '/Tasks/';
+
+        if (!localStorage.getItem(ACCESS_TOKEN_KEY)) {
+            window.location.href = 'login.html';
+        }
 
         function showMessage(text, type = 'success') {
             const message = document.getElementById('message');
@@ -73,34 +83,65 @@
         async function fetchApi(path, options = {}) {
             const url = `${API_BASE_URL}${path}`;
             try {
-                const response = await fetch(url, { 
-                    ...options, 
-                    headers: { 
-                        'Accept': 'application/json', 
-                        ...(options.headers || {}) 
-                    } 
+                const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+                const response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        'Accept': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                        ...(options.headers || {})
+                    }
                 });
                 
-                if (!response.ok) { 
-                    const txt = await response.text(); 
-                    throw new Error(txt || `${response.status} ${response.statusText}`); 
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        localStorage.removeItem(ACCESS_TOKEN_KEY);
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    const txt = await response.text();
+                    throw new Error(txt || `${response.status} ${response.statusText}`);
                 }
-                
-                if (response.status === 204) return null; 
+
+                if (response.status === 204) return null;
                 return await response.json();
-            } catch (err) { 
+            } catch (err) {
                 console.error('API Error:', err.message);
                 throw new Error(err.message || 'Network connectivity issue');
             }
         }
 
         async function fetchTasks() {
-            try { 
-                const tasks = await fetchApi(API_PATH); 
-                renderTaskList(tasks); 
-            } catch (e) { 
-                showMessage(`Backend unreachable. Please verify connection.`, 'error'); 
+            try {
+                const tasks = await fetchApi(API_PATH);
+                renderTaskList(tasks);
+            } catch (e) {
+                showMessage(`Backend unreachable. Please verify connection.`, 'error');
             }
+        }
+
+        function getUsernameFromToken() {
+            const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+            if (!token) return null;
+            const payload = token.split('.')[1];
+            try {
+                const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+                return decoded.sub || null;
+            } catch (err) {
+                return null;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem(ACCESS_TOKEN_KEY);
+            window.location.href = 'login.html';
+        }
+
+        document.getElementById('logoutButton').addEventListener('click', logout);
+
+        const username = getUsernameFromToken();
+        if (username) {
+            document.getElementById('welcomeText').textContent = `Logged in as ${username}`;
         }
 
         function escapeHtml(str) {
