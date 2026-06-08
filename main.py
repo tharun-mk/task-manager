@@ -2,14 +2,18 @@ from fastapi import FastAPI,Depends,HTTPException
 import services,models,schemas
 from db import get_db,engine,create_table
 from sqlalchemy.orm import Session
+from contextlib import asynccontextmanager
 
 from fastapi.middleware.cors import CORSMiddleware
-
-app=FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_table()
+    yield
+app=FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://tharun-mk.github.io/task-manager/","https://tharun-mk.github.io/task-manager","http://127.0.0.1:8000","http://localhost:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
