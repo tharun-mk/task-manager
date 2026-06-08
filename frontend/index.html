@@ -58,12 +58,9 @@
     <script>
         /**
          * PRODUCTION CONFIGURATION
-         * Replace the fallback string with your live Render/Railway backend URL.
-         * Leaving it as a relative path '/' works perfectly if hosting frontend & backend together.
+         * Configured to strictly use the live Render backend URL.
          */
-        const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://127.0.0.1:8000'
-            : 'https://task-manager-ur9j.onrender.com'; 
+        const API_BASE_URL = 'https://task-manager-ur9j.onrender.com'; 
 
         const API_PATH = '/Tasks/';
 
