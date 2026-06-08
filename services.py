@@ -7,7 +7,8 @@ from typing import Optional
 
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError, ExpiredSignatureError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
@@ -37,7 +38,8 @@ def get_password_hash(password: str) -> str:
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta if expires_delta else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
+    # PyJWT expects a numeric timestamp for exp or a datetime; we pass datetime
+    to_encode.update({"exp": expire, "iat": datetime.utcnow()})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
@@ -65,7 +67,9 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-    except JWTError:
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired", headers={"WWW-Authenticate": "Bearer"})
+    except PyJWTError:
         raise credentials_exception
     user = get_user_by_username(db, username)
     if user is None:
