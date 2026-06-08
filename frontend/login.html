@@ -38,12 +38,12 @@
 
     <script>
         const API_BASE_URL = 'https://task-manager-ur9j.onrender.com';
-        const ACCESS_TOKEN_KEY = 'access_token';
+        const USERNAME_KEY = 'username';
 
         const messageBox = document.getElementById('message');
         const loginBtn = document.getElementById('loginBtn');
 
-        if (localStorage.getItem(ACCESS_TOKEN_KEY)) {
+        if (localStorage.getItem(USERNAME_KEY)) {
             window.location.href = 'index.html';
         }
 
@@ -81,7 +81,7 @@
                 }
 
                 const data = await response.json();
-                localStorage.setItem(ACCESS_TOKEN_KEY, data.access_token);
+                localStorage.setItem(USERNAME_KEY, data.username);
                 showMessage(`Welcome back, ${data.username}! Redirecting...`, 'success');
                 setTimeout(() => window.location.href = 'index.html', 800);
             } catch (error) {

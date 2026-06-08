@@ -67,10 +67,10 @@
          * Configured to strictly use the live Render backend URL.
          */
         const API_BASE_URL = 'https://task-manager-ur9j.onrender.com';
-        const ACCESS_TOKEN_KEY = 'access_token';
+        const USERNAME_KEY = 'username';
         const API_PATH = '/Tasks/';
 
-        if (!localStorage.getItem(ACCESS_TOKEN_KEY)) {
+        if (!localStorage.getItem(USERNAME_KEY)) {
             window.location.href = 'login.html';
         }
 
@@ -83,12 +83,10 @@
         async function fetchApi(path, options = {}) {
             const url = `${API_BASE_URL}${path}`;
             try {
-                const token = localStorage.getItem(ACCESS_TOKEN_KEY);
                 const response = await fetch(url, {
                     ...options,
                     headers: {
                         'Accept': 'application/json',
-                        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
                         ...(options.headers || {})
                     }
                 });
@@ -113,33 +111,22 @@
 
         async function fetchTasks() {
             try {
-                const tasks = await fetchApi(API_PATH);
+                const username = localStorage.getItem(USERNAME_KEY);
+                const tasks = await fetchApi(`${API_PATH}?username=${encodeURIComponent(username)}`);
                 renderTaskList(tasks);
             } catch (e) {
                 showMessage(`Backend unreachable. Please verify connection.`, 'error');
             }
         }
 
-        function getUsernameFromToken() {
-            const token = localStorage.getItem(ACCESS_TOKEN_KEY);
-            if (!token) return null;
-            const payload = token.split('.')[1];
-            try {
-                const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
-                return decoded.sub || null;
-            } catch (err) {
-                return null;
-            }
-        }
-
         function logout() {
-            localStorage.removeItem(ACCESS_TOKEN_KEY);
+            localStorage.removeItem(USERNAME_KEY);
             window.location.href = 'login.html';
         }
 
         document.getElementById('logoutButton').addEventListener('click', logout);
 
-        const username = getUsernameFromToken();
+        const username = localStorage.getItem(USERNAME_KEY);
         if (username) {
             document.getElementById('welcomeText').textContent = `Logged in as ${username}`;
         }
@@ -209,7 +196,8 @@
             const id = document.getElementById('taskIdInput').value.trim(); 
             if(!id) return showMessage('Please enter a task ID.','error'); 
             try{ 
-                const task = await fetchApi(`${API_PATH}${id}`); 
+                const username = localStorage.getItem(USERNAME_KEY);
+                const task = await fetchApi(`${API_PATH}${id}?username=${encodeURIComponent(username)}`); 
                 displaySingleTask(task);
             }catch(e){ 
                 showMessage(`Task not found or system error.`,'error'); 
@@ -226,7 +214,8 @@
             
             try{ 
                 submitBtn.disabled = true;
-                await fetchApi(API_PATH, { 
+                const username = localStorage.getItem(USERNAME_KEY);
+                await fetchApi(`${API_PATH}?username=${encodeURIComponent(username)}`, { 
                     method:'POST', 
                     headers:{'Content-Type':'application/json'}, 
                     body: JSON.stringify({ task_to_do: text, status, due_date: dueDate }) 
@@ -278,7 +267,8 @@
             const dueDate = document.getElementById(`editDate-${id}`).value || null; 
             if(!text) return showMessage('Task description cannot be empty.','error'); 
             try{ 
-                await fetchApi(`${API_PATH}${id}`, { 
+                const username = localStorage.getItem(USERNAME_KEY);
+                await fetchApi(`${API_PATH}${id}?username=${encodeURIComponent(username)}`, { 
                     method:'PUT', 
                     headers:{'Content-Type':'application/json'}, 
                     body: JSON.stringify({ task_to_do: text, status, due_date: dueDate }) 
@@ -293,7 +283,8 @@
         async function deleteTask(id){ 
             if(!confirm('Are you sure you want to delete this task?')) return; 
             try{ 
-                await fetchApi(`${API_PATH}${id}`, { method:'DELETE' }); 
+                const username = localStorage.getItem(USERNAME_KEY);
+                await fetchApi(`${API_PATH}${id}?username=${encodeURIComponent(username)}`, { method:'DELETE' }); 
                 showMessage('Task deleted successfully.'); 
                 fetchTasks(); 
             }catch(e){ 
@@ -305,7 +296,8 @@
             const newStatus = task.status === 'pending' ? 'completed' : 'pending'; 
             const dueDate = task.due_date === 'None' ? null : task.due_date || null; 
             try{ 
-                await fetchApi(`${API_PATH}${task.id}`, { 
+                const username = localStorage.getItem(USERNAME_KEY);
+                await fetchApi(`${API_PATH}${task.id}?username=${encodeURIComponent(username)}`, { 
                     method:'PUT', 
                     headers:{'Content-Type':'application/json'}, 
                     body: JSON.stringify({ task_to_do: task.task_to_do, status: newStatus, due_date: dueDate }) 
