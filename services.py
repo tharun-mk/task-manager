@@ -14,7 +14,10 @@ def get_one(db:Session,taskid:int):
 def update_task_db(data,id,db):
     t=db.query(Tasks).filter(Tasks.id==id).first()
     if t:
+        # avoid overwriting the primary key
         for key,value in data.model_dump().items():
+            if key == 'id':
+                continue
             setattr(t,key,value)
         db.commit()
         db.refresh(t)

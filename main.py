@@ -19,6 +19,7 @@ async def get_all_tasks(db:Session=Depends(get_db)):
     return services.get_tasks(db)
 @app.post("/Tasks/",response_model=schemas.Task)
 async def create_new_tasks(task:schemas.Taskcreate,db:Session=Depends(get_db)):
+    create_table()
     return services.create_tasks(db,task)
 @app.get("/Tasks/{id}",response_model=schemas.Task)
 async def get_one_tasks(id : int,db:Session=Depends(get_db)):
